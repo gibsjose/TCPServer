@@ -1,7 +1,6 @@
 IDIR =
 CC = gcc
-CFLAGS = -std=c99 -I$(IDIR) -Wall -g
-
+CFLAGS = -I$(IDIR) -Wall -g -std=c99
 ODIR = obj
 LDIR = ../lib
 LIBS = -lcurses
