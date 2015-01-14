@@ -2,9 +2,14 @@
 
 #include <sys/socket.h> //Socket features
 #include <netinet/in.h> //Internet-specific features of sockets
+#include <stdlib.h>
 #include <stdio.h>
 #include <string.h>
 #include <unistd.h>
+#include <errno.h>
+
+#define PORT 8888
+#define MAX_FILE_SIZE_BYTES (50 * 1024 * 1024)
 
 int main(int argc, char *argv[]) {
 
@@ -17,7 +22,7 @@ int main(int argc, char *argv[]) {
     struct sockaddr_in clientaddr;
 
     serveraddr.sin_family = AF_INET;
-    serveraddr.sin_port = htons(9876);
+    serveraddr.sin_port = htons(PORT);
     serveraddr.sin_addr.s_addr = INADDR_ANY;    //Specifies the address on which the server will listen to for clients...
                                                 //INADDR_ANY specifies to listen on ANY address, but with a fixed port
 
@@ -41,15 +46,53 @@ int main(int argc, char *argv[]) {
 
         //Now have a socket descriptor for a specific client
 
-        //Receive on the client socket
-        char r_line[1024];
-        int n = recv(clientsocket, r_line, 1024, 0);
+        //Receive the file path on the client socket.
+        char lFilePath[1024];
+        int lNumBytes = recv(clientsocket, lFilePath, 1024, 0);
 
         //Display data received
-        printf("Received %d bytes from client: %s\n", n, r_line);
+        printf("Received %d bytes from client: %s\n", lNumBytes, lFilePath);
+
+        //Attempt to open the file pointed to by the file path.
+        FILE * lFilePtr = fopen(lFilePath, "rb");
+        if(0 == lFilePtr)
+        {
+          printf("There was an error opening the file.\n");
+          perror(strerror(errno));
+          return -1;
+        }
+
+        //Read the data from the file into the buffer.
+        char * lBuffer = malloc(MAX_FILE_SIZE_BYTES);
+        size_t lTotalBytesRead = 0;
+
+        while (!feof(lFilePtr))
+        {
+          int lNumBytesRead = fread(lBuffer, 1, MAX_FILE_SIZE_BYTES, lFilePtr);
+          lTotalBytesRead += lNumBytesRead;
+          if(lNumBytesRead == 0)
+          {
+            if (ferror(lFilePtr))
+            {
+              printf("There was an error reading the file.\n");
+              return -1;
+            }
+            else
+            {
+              //done reading the file
+              break;
+            }
+          }
+        }
+
+        //close the file
+        fclose(lFilePtr);
 
         //Echo data back to client
-        send(clientsocket, r_line, strlen(r_line), 0);
+        send(clientsocket, lBuffer, lTotalBytesRead, 0);
+
+        //Free the buffer's memory.
+        free(lBuffer);
 
         //Close the client socket
         close(clientsocket);
