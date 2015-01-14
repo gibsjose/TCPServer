@@ -4,6 +4,7 @@
 #include <netinet/in.h> //Internet-specific features of sockets
 #include <stdio.h>
 #include <string.h>
+#include <unistd.h>
 
 int main(int argc, char *argv[]) {
 
