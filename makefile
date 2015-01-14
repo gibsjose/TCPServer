@@ -1,6 +1,6 @@
 IDIR =
 CC = gcc
-CFLAGS = -I$(IDIR) -Wall -g
+CFLAGS = -I$(IDIR) -Wall -g -std=c99
 
 ODIR = obj
 LDIR = ../lib
