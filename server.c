@@ -91,7 +91,7 @@ int main(int argc, char *argv[]) {
         //close the file
         fclose(lFilePtr);
 
-        printf("%s\n", lBuffer);
+        printf("Total bytes to send: %lu\n", lTotalBytesRead);
 
         //Echo data back to client
         send(clientsocket, lBuffer, lTotalBytesRead, 0);
