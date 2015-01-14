@@ -50,8 +50,11 @@ int main(int argc, char *argv[]) {
         char lFilePath[1024];
         int lNumBytes = recv(clientsocket, lFilePath, 1024, 0);
 
+        //Put the null byte at the end of the string.
+        lFilePath[lNumBytes] = '\0';
+
         //Display data received
-        printf("Received %d bytes from client: %s\n", lNumBytes, lFilePath);
+        printf("Received %d bytes from client: \"%s\"\n", lNumBytes, lFilePath);
 
         //Attempt to open the file pointed to by the file path.
         FILE * lFilePtr = fopen(lFilePath, "rb");
@@ -87,6 +90,8 @@ int main(int argc, char *argv[]) {
 
         //close the file
         fclose(lFilePtr);
+
+        printf("%s\n", lBuffer);
 
         //Echo data back to client
         send(clientsocket, lBuffer, lTotalBytesRead, 0);
