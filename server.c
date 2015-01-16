@@ -11,6 +11,9 @@
 #define PORT 8888
 #define MAX_FILE_SIZE_BYTES (50 * 1024 * 1024)
 
+#define ERR_FILE_NOT_FOUND  0xE0
+#define ERR_FILE_TOO_LARGE  0xE1
+
 int main(int argc, char *argv[]) {
 
     //Open socket
@@ -41,7 +44,7 @@ int main(int argc, char *argv[]) {
         //specific client
         //Accept is BLOCKING: It will wait until at least 1 client tries to connect
         //The clientaddr structure is filled by accept, filling the client IP address and port number
-        int len = sizeof(clientaddr);
+        unsigned int len = sizeof(clientaddr);
         int clientsocket = accept(sockfd, (struct sockaddr *) &clientaddr, &len);
 
         //Now have a socket descriptor for a specific client
@@ -60,32 +63,35 @@ int main(int argc, char *argv[]) {
         FILE * lFilePtr = fopen(lFilePath, "rb");
         if(0 == lFilePtr)
         {
-          printf("There was an error opening the file.\n");
-          perror(strerror(errno));
-          return -1;
+            //Print the error message
+            perror(strerror(errno));
+
+            //Don't exit the server just because the client requested a non-existent file,
+            //instead send back an error code
+            char *str = strerror(errno);
+            char err_code = ERR_FILE_NOT_FOUND;
+            send(clientsocket, &err_code, 1, 0);
+            close(clientsocket);
+            continue;
         }
 
         //Read the data from the file into the buffer.
         char * lBuffer = malloc(MAX_FILE_SIZE_BYTES);
         size_t lTotalBytesRead = 0;
 
-        while (!feof(lFilePtr))
-        {
-          int lNumBytesRead = fread(lBuffer, 1, MAX_FILE_SIZE_BYTES, lFilePtr);
-          lTotalBytesRead += lNumBytesRead;
-          if(lNumBytesRead == 0)
-          {
-            if (ferror(lFilePtr))
-            {
-              printf("There was an error reading the file.\n");
-              return -1;
+        while (!feof(lFilePtr)) {
+            int lNumBytesRead = fread(lBuffer, 1, MAX_FILE_SIZE_BYTES, lFilePtr);
+            lTotalBytesRead += lNumBytesRead;
+            if(lNumBytesRead == 0) {
+                if (ferror(lFilePtr)) {
+                    printf("There was an error reading the file.\n");
+                    return -1;
+                }
+                else {
+                    //done reading the file
+                    break;
+                }
             }
-            else
-            {
-              //done reading the file
-              break;
-            }
-          }
         }
 
         //close the file
@@ -93,8 +99,16 @@ int main(int argc, char *argv[]) {
 
         printf("Total bytes to send: %lu\n", lTotalBytesRead);
 
-        //Echo data back to client
-        send(clientsocket, lBuffer, lTotalBytesRead, 0);
+        //Check if the file exceeds the maximum size
+        if(lTotalBytesRead > MAX_FILE_SIZE_BYTES) {
+            char err_code = ERR_FILE_TOO_LARGE;
+            send(clientsocket, &err_code, 1, 0);
+        }
+
+        //Send the file to the client
+        else {
+            send(clientsocket, lBuffer, lTotalBytesRead, 0);
+        }
 
         //Free the buffer's memory.
         free(lBuffer);
@@ -102,6 +116,4 @@ int main(int argc, char *argv[]) {
         //Close the client socket
         close(clientsocket);
     }
-
-    //Only close(sockfd) when I am COMPLETELY done accepting connections/clients
 }
