@@ -65,8 +65,7 @@ int main(int argc, char *argv[]) {
 
         //Attempt to open the file pointed to by the file path.
         FILE * lFilePtr = fopen(lFilePath, "rb");
-        if(0 == lFilePtr)
-        {
+        if(0 == lFilePtr) {
             //Print the error message
             perror(strerror(errno));
 
