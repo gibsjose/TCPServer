@@ -1,4 +1,8 @@
-//Example server application
+//CIS 452 Lab 2 - TCP Server
+//Joe Gibson
+//Seth Hilaski
+//Adam Luckenbaugh
+//Raleigh Mumford
 
 #include <sys/socket.h> //Socket features
 #include <netinet/in.h> //Internet-specific features of sockets
